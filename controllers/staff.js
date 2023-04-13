@@ -4,20 +4,23 @@ const path = require('path')
 const fs = require('fs')
 const {ObjectId} = require('bson')
 const nodemailer = require('nodemailer')
-const multer = require("multer");
+const multer = require("multer")
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, "uploads/")
     },
     filename: (req, file, cb) => {
-        cb(null, file.originalname)
+        cb(null, req.session.user.email + "-" + file.originalname)
     },
 })
 const uploadStorage = multer({ storage: storage })
 const router = express.Router()
-const {getDB,insertObject,getAccount,getAllDocumentFromCollection,getAnAccount,updateAccount, getIdeaFeedback, getAEvent,
-    checkUserRole,checkUserLogin,updateIdeaLikeCount,getAnIdea,checkCategory, checkUserLike, checkUserDislike,checkUserEmale,
-    EVENT_TABLE_NAME,USER_TABLE_NAME,IDEA_TABLE_NAME,CATEGORY_TABLE_NAME,ROLE_TABLE_NAME,DEPARTMENT_TABLE_NAME,POSTLIKE_TABLE_NAME,POSTDISLIKE_TABLE_NAME,COMMENT_TABLE_NAME} = require('../databaseHandler');
+const {getDB,insertObject,getAccount,getAllDocumentFromCollection,getAnAccount,updateAccount,
+    getIdeaFeedback, getAEvent, editEvent, checkUserDepartment,
+    checkUserRole,checkUserLogin,updateIdeaLikeCount,getAnIdea,checkCategory, checkUserLike, 
+    checkUserDislike,checkUserEmail, checkExistEmail,searchIdeaByCategory, searchIdeaByEvent,
+    EVENT_TABLE_NAME,USER_TABLE_NAME,IDEA_TABLE_NAME,CATEGORY_TABLE_NAME,ROLE_TABLE_NAME,
+    DEPARTMENT_TABLE_NAME,POSTLIKE_TABLE_NAME,POSTDISLIKE_TABLE_NAME,COMMENT_TABLE_NAME} = require('../databaseHandler');
 
 
 
@@ -44,6 +47,7 @@ router.post('/newIdea',requiresLoginStaff,uploadStorage.single("myFile"), async 
     const authorEmail = req.session.user.email
     const likeCount = 0
     const department = req.session.user.department
+    const category = req.body.Category
     const event = req.body.Event
     const eventId = ObjectId(event)
     console.log(event)
@@ -61,11 +65,9 @@ router.post('/newIdea',requiresLoginStaff,uploadStorage.single("myFile"), async 
             }
             console.log("File is taken down.")
         })
-        req.session.save(() => {
-            res.redirect('/staff/newIdea')
-        })
+        res.redirect('/staff/newIdea')
     } else {
-        const ideaName = fileName.replace(".pdf","")
+        const ideaName = fileName.replace(authorEmail + "-","").replace(".pdf","")
         const idea = fileName
         if (Anon == "Yes"){
             const objectToInsert = {
@@ -75,9 +77,10 @@ router.post('/newIdea',requiresLoginStaff,uploadStorage.single("myFile"), async 
                 'email' : authorEmail,
                 'user': author,
                 'likeCount':likeCount,
+                'category': category,
                 'department': department,
                 'event': e.name,
-                'date': realTime
+                'date': Date(realTime)
             }
             insertObject(IDEA_TABLE_NAME,objectToInsert)
             let transporter = nodemailer.createTransport({
@@ -104,9 +107,7 @@ router.post('/newIdea',requiresLoginStaff,uploadStorage.single("myFile"), async 
                     console.log("Sendfile successfull!")
                 }
             })
-            req.session.save(() => {
-                res.redirect('/staff/viewIdea')
-            })
+            res.redirect('/staff/viewIdea')
         } else {
             const objectToInsert = {
                 'name': ideaName,
@@ -115,9 +116,10 @@ router.post('/newIdea',requiresLoginStaff,uploadStorage.single("myFile"), async 
                 'email' : authorEmail,
                 'user': author,
                 'likeCount':likeCount,
+                'category':category,
                 'department': department,
                 'event': e.name,
-                'date': realTime
+                'date': Date(realTime)
             }
             insertObject(IDEA_TABLE_NAME,objectToInsert)
             let transporter = nodemailer.createTransport({
@@ -144,9 +146,7 @@ router.post('/newIdea',requiresLoginStaff,uploadStorage.single("myFile"), async 
                     console.log("Sendfile successfull!")
                 }
             })
-            req.session.save(() => {
-                res.redirect('/staff/viewIdea')
-            })
+            res.redirect('/staff/viewIdea')
         }
     }
 
@@ -291,7 +291,7 @@ router.get('/Idea', requiresLoginStaff,async (req, res) => {
     const id = req.query.id
     const objectId = ObjectId(id)
     const result = await getAnIdea(objectId)
-    const name = result.idea
+    const name = Date(Date.now()) + "-" + result.idea
     const folderPath = __dirname.replace('\controllers','')+('/uploads/')
     res.sendFile(folderPath + name)
 })
@@ -300,9 +300,13 @@ router.get('/submitComment', requiresLoginStaff, async (req, res) => {
     const id = req.query.id
     const objectId = ObjectId(id)
     const result = await getAnIdea(objectId)
-    const ErrorMessage = req.session.error.msg
+    if (req.session.error.msg != null) {
+        var ErrorMessage = req.session.error.msg
+    }
     res.render('staff/submitComment',{idea: result, ErrorMessage: ErrorMessage})
+    req.session.error.msg = null
 })
+
 router.get('/newIdea', requiresLoginStaff, async (req,res)=>{
     const category = await getAllDocumentFromCollection(CATEGORY_TABLE_NAME)
     const event = await getAllDocumentFromCollection(EVENT_TABLE_NAME)
@@ -327,7 +331,28 @@ router.get('/viewComment', requiresLoginStaff,async (req,res)=>{
 
 router.get('/viewIdea',requiresLoginStaff, async (req, res) => {
     const results = await getAllDocumentFromCollection(IDEA_TABLE_NAME)
-    res.render('staff/viewIdea',{ideas:results})
+    if (req.session.error.msg != null){
+        res.render('staff/viewIdea',{ideas:results,ErrorMsg:req.session.error.msg})
+        req.session.error.msg = null
+    } else {
+        res.render('staff/viewIdea',{ideas:results})
+    }
+})
+
+router.post('/viewSort', async (req, res)=>{
+    const input = req.body.Input
+    const checkC = await searchIdeaByCategory(input)
+    const checkE = await searchIdeaByEvent(input)
+    if (checkC == -1 & checkE == -1){
+        req.session.error.msg = "There are no such category or event"
+        res.redirect('/staff/viewIdea')
+    } else if (checkC != -1 & checkE == -1){
+        console.log(checkC)
+        res.render('staff/viewIdea',{ideas:checkC})
+    } else {
+        console.log(checkE)
+        res.render('staff/viewIdea',{ideas:checkE})
+    }
 })
 
 

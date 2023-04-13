@@ -145,7 +145,7 @@ async function checkUserLike(ideaI, Email){
 
 async function checkUserDislike(ideaI, Email){
     const dbo = await getDB()
-    var results = await dbo.collection(POSTDISLIKE_TABLE_NAME).findOne({ ideaID: ideaI, userEmail: Email})
+    const results = await dbo.collection(POSTDISLIKE_TABLE_NAME).findOne({ ideaID: ideaI, userEmail: Email})
     if (results){
         return 1;
     } else {
@@ -153,6 +153,27 @@ async function checkUserDislike(ideaI, Email){
     }
 }
 
+async function searchIdeaByCategory(input){
+    const dbo = await getDB()
+    const results = await dbo.collection(IDEA_TABLE_NAME).find({category:input}).toArray()
+    console.log(results)
+    if (results != null){
+        return results
+    } else {
+        return -1
+    }
+}
+
+async function searchIdeaByEvent(input){
+    const dbo = await getDB()
+    const results = await dbo.collection(IDEA_TABLE_NAME).find({event:input}).toArray()
+    console.log(results)
+    if (results != null){
+        return results
+    } else {
+        return -1
+    }
+}
 
 
 
@@ -166,6 +187,9 @@ const POSTLIKE_TABLE_NAME = "Postlike"
 const COMMENT_TABLE_NAME = "Comments"
 const POSTDISLIKE_TABLE_NAME = "Postdislike"
 
-module.exports = {getDB,insertObject,getAccount,getAllDocumentFromCollection,getAnAccount,updateAccount, getIdeaFeedback, getAEvent, editEvent, checkUserDepartment,
-                checkUserRole,checkUserLogin,updateIdeaLikeCount,getAnIdea,checkCategory, checkUserLike, checkUserDislike,checkUserEmail, checkExistEmail,
-                EVENT_TABLE_NAME,USER_TABLE_NAME,IDEA_TABLE_NAME,CATEGORY_TABLE_NAME,ROLE_TABLE_NAME,DEPARTMENT_TABLE_NAME,POSTLIKE_TABLE_NAME,POSTDISLIKE_TABLE_NAME,COMMENT_TABLE_NAME}
+module.exports = {getDB,insertObject,getAccount,getAllDocumentFromCollection,getAnAccount,updateAccount,
+                getIdeaFeedback, getAEvent, editEvent, checkUserDepartment,
+                checkUserRole,checkUserLogin,updateIdeaLikeCount,getAnIdea,checkCategory, checkUserLike, 
+                checkUserDislike,checkUserEmail, checkExistEmail,searchIdeaByCategory, searchIdeaByEvent,
+                EVENT_TABLE_NAME,USER_TABLE_NAME,IDEA_TABLE_NAME,CATEGORY_TABLE_NAME,ROLE_TABLE_NAME,
+                DEPARTMENT_TABLE_NAME,POSTLIKE_TABLE_NAME,POSTDISLIKE_TABLE_NAME,COMMENT_TABLE_NAME}

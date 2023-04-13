@@ -105,7 +105,7 @@ router.post('/doUpdateAccount', async (req,res)=>{
     } else if (result == "-1"){
         req.session.error.msg = "This email has been used"
         res.redirect('/admin/doUpdateAccount')
-    }
+    } 
     const check = await updateAccount(objectId,account)
     console.log(check)
     res.redirect('/admin/viewAccount')

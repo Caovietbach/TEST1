@@ -17,12 +17,9 @@
             <input type="text" name="txtPassword" class="form-control"value={{account.password}}><br>
             Email: <br>
             <input type="text" name="txtEmail" class="form-control" value={{account.email}}><br>
-            Role: <br>
-            <input type="text" class="form-control"value={{account.role}}><br>
-            <br>
             Change Role:<br>
             <select name="Role">
-                <option value="0">Please Choose a role</option>
+                <option value="0">{{account.role}}</option>
                 {{#each roles}}
                     <option value="{{name}}">{{name}}</option>
                 {{/each}}
@@ -30,14 +27,12 @@
             <br>
             Change Department: <br>
             <select name="Department">
-                <option value="0">Please Choose a Department</option>
+                <option value="0">{{account.department}}</option>
                 {{#each departments}}
                     <option value="{{name}}">{{name}}</option>
                 {{/each}}
             </select>
             <br>
-
-
         <center>
             <button type="submit" class="btn btn-danger">Update</button>
         </center>
