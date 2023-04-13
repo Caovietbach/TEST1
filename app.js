@@ -2,8 +2,8 @@ const express = require('express')
 const app = express()
 const fs = require('fs')
 const session = require('express-session')
-app.use(session({ secret: '124447yd@@$%%#', cookie: { maxAge: 60000 }, saveUninitialized: false, resave: false }))
-const {getAllDocumentFromCollection,checkUserEmale,checkUserRole,checkUserLogin,ROLE_TABLE_NAME} = require('./databaseHandler')
+app.use(session({ secret: '124447yd@@$%%#', cookie: { secure : false ,maxAge: 24 * 60 * 60 * 1000 }, saveUninitialized: false, resave: false }))
+const {getAllDocumentFromCollection,checkUserEmail,checkUserRole,checkUserLogin,checkUserDepartment} = require('./databaseHandler')
 
 
 
@@ -11,19 +11,20 @@ app.set('view engine', 'hbs')
 app.use(express.urlencoded({ extended: true }))
 //app.use(express.bodyParser());
 
-app.get('/',(req,res)=>{
-    res.render('home')
-})
 
 const adminController = require('./controllers/admin')
 app.use('/admin', adminController)
 const staffController = require('./controllers/staff')
 app.use('/staff', staffController)
 const qamanagerController = require('./controllers/qamanager')
-app.use('/qamanagemer', qamanagerController)
+app.use('/qamanager', qamanagerController)
 const qacoordinatorController = require('./controllers/qacoordinator')
 app.use('/qacoordinator', qacoordinatorController)
 
+
+app.get('/',(req,res)=>{
+    res.render('home')
+})
 
 app.post("/login", async(req, res) => {
     const userName = req.body.txtName;
@@ -37,17 +38,22 @@ app.post("/login", async(req, res) => {
         console.log(role)
         if (pass == user.password) {
             const role = await checkUserRole(userName,pass)
-            const email = await checkUserEmale(userName,pass)
+            const email = await checkUserEmail(userName,pass)
+            const department = await checkUserDepartment(userName,pass)
             if (role == -1) {
                 res.render("login", { errorMsg: "Login failed!" })
             } else {
                 req.session.user = {
                     userName: userName,
                     role: role,
-                    email: email
+                    email: email,
+                    department: department
                 }
                 console.log("Login with: ")
                 console.log(req.session.user)
+                req.session.error = {
+                    msg: null
+                }
                 if (role == "Staff") {
                     req.session.save()
                     res.redirect('/staff/home')
@@ -56,7 +62,7 @@ app.post("/login", async(req, res) => {
                     req.session.save()
                     res.redirect("/qamanager/home")
                 } 
-                if (role == "QAManager") {
+                if (role == "QACoordinator") {
                     req.session.save()
                     res.redirect("/qacoordinator/home")
                 }
@@ -75,8 +81,7 @@ app.post("/login", async(req, res) => {
 
 
 app.get('/login', async(req,res)=>{
-    console.log(req.session.error)
-    res.render('login', {errorMsg: req.session.error})
+    res.render('login')
     delete req.session.error
 })
 

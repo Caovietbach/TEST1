@@ -15,7 +15,7 @@
         <a href="/admin/viewAccount">View Account</a>
         <a href="/logout">Logout</a> 
     </div>
-    <h2>View all Ideas</h1>
+    <h2>View all Ideas</h2>
     <ul>
         <center>
         <div>
@@ -34,7 +34,7 @@
             {{#each ideas}}
             <tr>
                 <td>
-                    <a href="/staff/Idea?id={{_id}}">{{idea}}</a>  
+                    <a href="/admin/Idea?id={{_id}}">{{name}}</a>  
                 </td>
                 <td>
                     {{author}}
@@ -47,24 +47,24 @@
                 </td>
                 <td>
                 <button type="submit" class="btn btn-danger">
-                        <a href="/staff/likeIdea?id={{_id}}">
+                        <a href="/admin/likeIdea?id={{_id}}">
                             Thump Up
                         </a> 
                 </button>
                 <button type="submit" class="btn btn-danger">
-                        <a href="/staff/dislikeIdea?id={{_id}}">
+                        <a href="/admin/dislikeIdea?id={{_id}}">
                             Thump Down
                         </a> 
                 </button>
                 </td>
                 <td>
                     <button type="submit" class="btn btn-danger">
-                        <a href="/staff/submitComment?id={{_id}}">
+                        <a href="/admin/submitComment?id={{_id}}">
                             Comment
                         </a> 
                     </button>
                     <button type="submit" class="btn btn-danger">
-                        <a href="/staff/viewComment?id={{_id}}">
+                        <a href="/admin/viewComment?id={{_id}}">
                             View All Comment
                         </a> 
                     </button>

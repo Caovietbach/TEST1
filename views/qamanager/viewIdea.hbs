@@ -7,12 +7,75 @@
     <title>Home page</title>
 </head>
 <body>
-    <h1>Welcome back Adminstrator</h1>
-    <ul></ul>
-        <li><a href="/qamanager/home">Add a new account</a></li>
-        <li><a href="/qamanager/viewIdea">View All Idea</a></li>
-        <li><a href="/logout">Logout</a></li>
+    <h1>FPT University</h1>
+    <div class = "bar">
+        <a href="/qamanager/home">Menu</a>
+        <a href="/qamanager/newIdea">View Idea</a>
+        <a href="/logout">Logout</a> 
+    </div>
+    <h2>View all Ideas</h1>
+    <a href="/qamanager/downloadCsv">Download in Csv form</a>
+    <br>
+    <a href="/qamanager/downloadZip">Download in zip form</a>
+    <ul>
+        <center>
+        <div>
+            <span style="color: red;">{{errorMsg}}</span>
+        </div>
+        <table border="1" cellspacing="1">
+        <thead>
+            <tr>
+                <th>Idea</th>
+                <th>Author Name</th>
+                <th>Like</th>
+                <th>Category</th>
+                <th>Rating</th>
+                <th>Comment</th>
+            </tr>
+            {{#each ideas}}
+            <tr>
+                <td>
+                    <a href="/qamanager/Idea?id={{_id}}">{{name}}</a>  
+                </td>
+                <td>
+                    {{author}}
+                </td>
+                <td>
+                    {{likeCount}}
+                </td>
+                <td>
+                    {{category}}
+                </td>
+                <td>
+                <button type="submit" class="btn btn-danger">
+                        <a href="/qamanager/likeIdea?id={{_id}}">
+                            Thump Up
+                        </a> 
+                </button>
+                <button type="submit" class="btn btn-danger">
+                        <a href="/qamanager/dislikeIdea?id={{_id}}">
+                            Thump Down
+                        </a> 
+                </button>
+                </td>
+                <td>
+                    <button type="submit" class="btn btn-danger">
+                        <a href="/qamanager/submitComment?id={{_id}}">
+                            Comment
+                        </a> 
+                    </button>
+                    <button type="submit" class="btn btn-danger">
+                        <a href="/qamanager/viewComment?id={{_id}}">
+                            View All Comment
+                        </a> 
+                    </button>
+                </td>
+                <br><br>
+            </tr>
+            {{/each}}
+        </thead>
+        </table>
+        </center>
     </ul>
-    
 </body>
 </html>

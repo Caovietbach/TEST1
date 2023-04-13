@@ -1,0 +1,3 @@
+chart 1: column chart: số người nộp idea cho 1 event của từng department
+chart 2: line chart: thời gian người nộp idea cho một event 
+chart 3: pie chart: số người đã tham gia nộp idea cho một event cụ thể

@@ -15,6 +15,7 @@
         <br>
         Role: 
         <select name="Role">
+            <option value="None">The account's role</option>
             {{#each roles}}
             <option value="{{name}}">{{name}}</option>
             {{/each}}
@@ -22,6 +23,7 @@
         <br>
         Department: 
         <select name="Department">
+            <option value="None">The account's department</option>
             {{#each departments}}
             <option value="{{name}}">{{name}}</option>
             {{/each}}

@@ -22,6 +22,7 @@
             <br>
             Change Role:<br>
             <select name="Role">
+                <option value="0">Please Choose a role</option>
                 {{#each roles}}
                     <option value="{{name}}">{{name}}</option>
                 {{/each}}
@@ -29,6 +30,7 @@
             <br>
             Change Department: <br>
             <select name="Department">
+                <option value="0">Please Choose a Department</option>
                 {{#each departments}}
                     <option value="{{name}}">{{name}}</option>
                 {{/each}}

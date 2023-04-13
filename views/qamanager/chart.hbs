@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Dashboard</title>
+</head>
+<body>
+    <h1>FPT University</h1>
+    <div class = "bar">
+        <a href="/admin/home">Menu</a>
+        <a href="/admin/viewIdea">View Idea</a>
+        <a href="/admin/viewAccount">View Account</a>
+        <a href="/logout">Logout</a> 
+    </div>
+    <h2>View the dashboard of the event</h2>
+    <form method="post" action="/staff/newIdea" enctype="multipart/form-data">
+        Choice:
+        <br>
+        <select name="Choice">
+            <option value="0">Please choose the chart you want to see about this event</option> 
+            <option value="1">Column chart about submited ideas per departments in this event</option> 
+            <option value="2">Line chart about submited ideas date per week during this event</option> 
+            <option value="3">Pie chart about the number of staffs of each departments during this event</option> 
+        </select>
+        <br>
+        Event: 
+        <br>
+        <select name="Event">
+            <option value="0">Please choose an event</option>
+            {{#each events}}
+            <option value="{{_id}}">{{name}}</option>
+            {{/each}}
+        </select>
+        <br>
+        <input type="submit" value="Generate Chart">
+    </form>
+</body>
+</html>

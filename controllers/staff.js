@@ -3,6 +3,7 @@ const async = require('hbs/lib/async')
 const path = require('path')
 const fs = require('fs')
 const {ObjectId} = require('bson')
+const nodemailer = require('nodemailer')
 const multer = require("multer");
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -21,20 +22,28 @@ const {getDB,insertObject,getAccount,getAllDocumentFromCollection,getAnAccount,u
 
 
 
+function requiresLoginStaff(req,res,next){
+    if(req.session.user){
+        if(req.session.user.role != "Staff"){
+            res.redirect('/login');
+        }
+        return next()
+    }else{
+        res.redirect('/login')
+    }
+}
 // POST
 
 
 
-
-
-
-router.post('/newIdea',uploadStorage.single("myFile"), async (req,res)=>{
+router.post('/newIdea',requiresLoginStaff,uploadStorage.single("myFile"), async (req,res)=>{
+    req.session.error.msg = null
     const fileName = res.req.file.filename
     console.log(fileName)
     const author = req.session.user.userName
     const authorEmail = req.session.user.email
     const likeCount = 0
-    const category = req.body.Category
+    const department = req.session.user.department
     const event = req.body.Event
     const eventId = ObjectId(event)
     console.log(event)
@@ -44,43 +53,100 @@ router.post('/newIdea',uploadStorage.single("myFile"), async (req,res)=>{
     const eDate = new Date(e.endDate).getTime()
 
     if (realTime > eDate){
-        req.session.error = "The event is passed"
-        res.redirect('/staff/newIdea')
-        console.log("1")
+        req.session.error.msg = "The Event has passed, you can't submit to it any more"
         const directoryPath = __dirname.replace('\controllers','')+('/uploads/')
         fs.unlink(directoryPath + fileName, (err) => {
             if (err) {
                 throw err;
             }
-        
-            console.log("File is taken down.");
-        });
+            console.log("File is taken down.")
+        })
+        req.session.save(() => {
+            res.redirect('/staff/newIdea')
+        })
     } else {
+        const ideaName = fileName.replace(".pdf","")
         const idea = fileName
         if (Anon == "Yes"){
             const objectToInsert = {
+                'name': ideaName,
                 'idea': idea,
                 'author': "Guest",
                 'email' : authorEmail,
                 'user': author,
                 'likeCount':likeCount,
-                'category': category,
-                'event': e.name
+                'department': department,
+                'event': e.name,
+                'date': realTime
             }
             insertObject(IDEA_TABLE_NAME,objectToInsert)
-            res.redirect('/staff/viewIdea')
+            let transporter = nodemailer.createTransport({
+                host: "smtp.gmail.com", 
+                port: 465,
+                secure: true,
+                auth: {
+                    user: 'bachcs48@gmail.com',
+                    pass: 'iffpwnrotlhcxtny',
+                }
+            
+            })
+            let mailOptions = {
+                from: "bachcs48@gmail.com",
+                to: "bachcvgch200418@fpt.edu.vn",
+                subject:"Idea",
+                text: "An idea has been submited."
+            }
+                
+            transporter.sendMail(mailOptions, function (err, success){
+                if (err) {
+                    console.log(err)
+                } else {
+                    console.log("Sendfile successfull!")
+                }
+            })
+            req.session.save(() => {
+                res.redirect('/staff/viewIdea')
+            })
         } else {
             const objectToInsert = {
+                'name': ideaName,
                 'idea': idea,
                 'author':author,
                 'email' : authorEmail,
                 'user': author,
                 'likeCount':likeCount,
-                'category': category,
-                'event': e.name
+                'department': department,
+                'event': e.name,
+                'date': realTime
             }
             insertObject(IDEA_TABLE_NAME,objectToInsert)
-            res.redirect('/staff/viewIdea')
+            let transporter = nodemailer.createTransport({
+                host: "smtp.gmail.com", 
+                port: 465,
+                secure: true,
+                auth: {
+                    user: 'bachcs48@gmail.com',
+                    pass: 'iffpwnrotlhcxtny',
+                }
+            
+            })
+            let mailOptions = {
+                from: "bachcs48@gmail.com",
+                to: "bachcvgch200418@fpt.edu.vn",
+                subject:"Idea",
+                text: "An idea has been submited."
+            }
+                
+            transporter.sendMail(mailOptions, function (err, success){
+                if (err) {
+                    console.log(err)
+                } else {
+                    console.log("Sendfile successfull!")
+                }
+            })
+            req.session.save(() => {
+                res.redirect('/staff/viewIdea')
+            })
         }
     }
 
@@ -89,7 +155,7 @@ router.post('/newIdea',uploadStorage.single("myFile"), async (req,res)=>{
 
 
 
-router.post('/submitComment', async (req,res)=>{
+router.post('/submitComment',requiresLoginStaff, async (req,res)=>{
     var id = req.body.id
     console.log(id)
     const user = req.session.user.userName
@@ -110,22 +176,27 @@ router.post('/submitComment', async (req,res)=>{
     }
     const check = await insertObject(COMMENT_TABLE_NAME,com)
     console.log(check)
-    res.redirect('/staff/viewIdea')
+    req.session.save(() => {
+        res.redirect('/staff/viewIdea')
+    })
 })
 
 
 
 //GET
 
-router.get('/likeIdea', async (req, res) => {
+router.get('/likeIdea',requiresLoginStaff, async (req, res) => {
     const id = req.query.id
     const objectId = ObjectId(id)
     var userEmail = req.session.user.email
     const testLike = await checkUserLike(objectId,userEmail)
     const testDislike = await checkUserDislike(objectId,userEmail)
+    console.log(testLike)
+    console.log(testDislike)
     if (testLike == 1){
-        req.session.save()
-        res.redirect('/staff/viewIdea')
+        req.session.save(() => {
+            res.redirect('/staff/viewIdea')
+        })
     } else if (testDislike == 1){
         const idea = await getAnIdea(objectId)
         console.log("So like hien tai la " + idea.likeCount)
@@ -138,11 +209,12 @@ router.get('/likeIdea', async (req, res) => {
             'userEmail' : req.session.user.email
         }
         const dbo = await getDB()
-        await dbo.collection(POSTDISLIKE_TABLE_NAME).deleteOne({_id: objectId, userEmail: userEmail})
+        await dbo.collection(POSTDISLIKE_TABLE_NAME).deleteOne({ideaID: objectId, userEmail: userEmail})
         await insertObject(POSTLIKE_TABLE_NAME,userThatLike)
         console.log("Success")
-        req.session.save()
-        res.redirect('/staff/viewIdea')
+        req.session.save(() => {
+            res.redirect('/staff/viewIdea')
+        })
     } else {
         var idea = await getAnIdea(objectId)
         console.log("So like hien tai la " + idea.likeCount)
@@ -157,12 +229,13 @@ router.get('/likeIdea', async (req, res) => {
         console.log(userThatLike)
         await insertObject(POSTLIKE_TABLE_NAME,userThatLike)
         console.log("Success")
-        req.session.save()
-        res.redirect('/staff/viewIdea')
+        req.session.save(() => {
+            res.redirect('/staff/viewIdea')
+        })
     }
 })
 
-router.get('/dislikeIdea', async (req, res) => {
+router.get('/dislikeIdea',requiresLoginStaff, async (req, res) => {
     const id = req.query.id
     console.log(id)
     const objectId = ObjectId(id)
@@ -173,8 +246,9 @@ router.get('/dislikeIdea', async (req, res) => {
     console.log(testDislike)
     console.log(testLike)
     if (testDislike == 1) {
-        req.session.save()
-        res.redirect('/staff/viewIdea')
+        req.session.save(() => {
+            res.redirect('/staff/viewIdea')
+        })
     } else if (testLike == 1){
         var idea = await getAnIdea(objectId)
         console.log("So like hien tai la " + idea.likeCount)
@@ -187,11 +261,12 @@ router.get('/dislikeIdea', async (req, res) => {
             'userEmail' : req.session.user.email
         }
         const dbo = await getDB()
-        await dbo.collection(POSTLIKE_TABLE_NAME).deleteOne({_id: objectId, userEmail: userEmail})
+        await dbo.collection(POSTLIKE_TABLE_NAME).deleteOne({ideaID: objectId, userEmail: userEmail})
         await insertObject(POSTDISLIKE_TABLE_NAME,userThatDislike)
         console.log("Success")
-        req.session.save()
-        res.redirect('/staff/viewIdea')
+        req.session.save(() => {
+            res.redirect('/staff/viewIdea')
+        })
     } else {
         var idea = await getAnIdea(objectId)
         console.log("So like hien tai la: " + idea.likeCount)
@@ -206,15 +281,13 @@ router.get('/dislikeIdea', async (req, res) => {
         console.log(userThatDislike)
         await insertObject(POSTDISLIKE_TABLE_NAME,userThatDislike)
         console.log("Success")
-        req.session.save()
-        res.redirect('/staff/viewIdea')
+        req.session.save(() => {
+            res.redirect('/staff/viewIdea')
+        })
     }
 })
 
-
-
-
-router.get('/Idea',async (req, res) => {
+router.get('/Idea', requiresLoginStaff,async (req, res) => {
     const id = req.query.id
     const objectId = ObjectId(id)
     const result = await getAnIdea(objectId)
@@ -222,30 +295,37 @@ router.get('/Idea',async (req, res) => {
     const folderPath = __dirname.replace('\controllers','')+('/uploads/')
     res.sendFile(folderPath + name)
 })
-router.get('/submitComment', async (req, res) => {
+
+router.get('/submitComment', requiresLoginStaff, async (req, res) => {
     const id = req.query.id
     const objectId = ObjectId(id)
     const result = await getAnIdea(objectId)
-    res.render('staff/submitComment',{idea: result})
+    const ErrorMessage = req.session.error.msg
+    res.render('staff/submitComment',{idea: result, ErrorMessage: ErrorMessage})
 })
-router.get('/newIdea',async (req,res)=>{
+router.get('/newIdea', requiresLoginStaff, async (req,res)=>{
     const category = await getAllDocumentFromCollection(CATEGORY_TABLE_NAME)
     const event = await getAllDocumentFromCollection(EVENT_TABLE_NAME)
-    res.render('staff/newIdea',{categories:category,events:event})
+    if(req.session.error.msg != null){
+        var ErrorMessage = req.session.error.msg
+    }
+    res.render('staff/newIdea',{categories:category,events:event,ErrorMessage:ErrorMessage})
+    req.session.error.msg = null
 })
 
-router.get('/home',(req,res)=>{
+router.get('/home', requiresLoginStaff,(req,res)=>{
     res.render('staff/home')
 })
 
-router.get('/viewComment',async (req,res)=>{
+router.get('/viewComment', requiresLoginStaff,async (req,res)=>{
     const id = req.query.id
-    console.log(id)
     const result = await getIdeaFeedback(id)
-    res.render('staff/viewComment',{comments:result})
+    const objectId = ObjectId(id)
+    const idea = await getAnIdea(objectId)
+    res.render('staff/viewComment',{comments:result,idea:idea})
 })
 
-router.get('/viewIdea', async (req, res) => {
+router.get('/viewIdea',requiresLoginStaff, async (req, res) => {
     const results = await getAllDocumentFromCollection(IDEA_TABLE_NAME)
     res.render('staff/viewIdea',{ideas:results})
 })

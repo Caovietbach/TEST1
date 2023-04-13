@@ -3,7 +3,7 @@ const async = require('hbs/lib/async')
 const {ObjectId} = require('bson')
 const router = express.Router()
 const {getDB,insertObject,getAnIdea,getAllDocumentFromCollection,getAccount,updateIdeaLikeCount,
-    checkUserLike,checkUserEmale,checkUserDislike, getAEvent, editEvent,
+    checkUserLike,checkUserEmale,checkUserDislike, getAEvent, editEvent, checkExistEmail,
     ROLE_TABLE_NAME,USER_TABLE_NAME,IDEA_TABLE_NAME,POSTLIKE_TABLE_NAME,POSTDISLIKE_TABLE_NAME,COMMENT_TABLE_NAME,EVENT_TABLE_NAME,DEPARTMENT_TABLE_NAME
     ,getAnAccount,updateAccount, getIdeaFeedback,} = require('../databaseHandler')
 
@@ -23,21 +23,48 @@ function requiresLoginAdmin(req,res,next){
 //POST
 
 router.post('/newAccount',requiresLoginAdmin, (req,res)=>{
+    
     const name = req.body.txtName
     const email = req.body.txtEmail
     const role = req.body.Role
     const department = req.body.Department
     const pass= req.body.txtPassword
+    const result = checkExistEmail(email)
 
-    const objectToInsert = {
-        userName: name,
-        email: email,
-        role: role,
-        department: department,
-        password: pass
+    if (name.lenght == 0){
+        req.session.error.msg = "An account must have a name"
+        res.redirect('/admin/newAccount')
+    } else if (email.lenght == 0){
+        req.session.error.msg = "An account must have an email"
+        res.redirect('/admin/newAccount')
+    } else if (role == 'None'){
+        req.session.error.msg = "An account must have a role"
+        res.redirect('/admin/newAccount')
+    } else if (role == "Admin" | role == "QAManager" & department != 'None'){
+        req.session.error.msg = "Admin or Quality Assurance Manager does not need a department"
+        res.redirect('/admin/newAccount')
+    } else if (role == "Staff" | role == "QACoordinator" & department == 'None') {
+        req.session.error.msg = "Staff or Quality Assurance Coordinator must have a department"
+        res.redirect('/admin/newAccount')
+    } else if (password.lenght == 0){
+        req.session.error.msg = "An account must have a password"
+        res.redirect('/admin/newAccount')
+    } else if (result == "-1"){
+        req.session.error.msg = "This email has been used"
+        res.redirect('/admin/newAccount')
     }
-    insertObject(USER_TABLE_NAME,objectToInsert)
-    res.redirect('/admin/viewAccount')
+    else {
+        const objectToInsert = {
+            'userName': name,
+            'email': email,
+            'role': role,
+            'department': department,
+            'password': pass
+        }
+        insertObject(USER_TABLE_NAME,objectToInsert)
+        res.redirect('/admin/viewAccount')
+    }
+    
 })
 
 router.post('/doUpdateAccount', async (req,res)=>{
@@ -47,11 +74,37 @@ router.post('/doUpdateAccount', async (req,res)=>{
     const password = req.body.txtPassword
     const email = req.body.txtEmail
     const role = req.body.Role
+    const department = req.body.txtDepartment
     var account = {
-        'userName' : username,
-        'password' : password,
+        'userName': name,
         'email': email,
-        'role': role
+        'role': role,
+        'department': department,
+        'password': pass
+    } 
+    const result = checkExistEmail(email)
+
+    if (username.lenght == 0){
+        req.session.error.msg = "An account must have a name"
+        res.redirect('/admin/doUpdateAccount')
+    } else if (email.lenght == 0){
+        req.session.error.msg = "An account must have an email"
+        res.redirect('/admin/doUpdateAccount')
+    } else if (role == 'None'){
+        req.session.error.msg = "An account must have a role"
+        res.redirect('/admin/doUpdateAccount')
+    } else if (role == "Admin" | role == "QAManager" & department != 'None'){
+        req.session.error.msg = "Admin or Quality Assurance Manager does not need a department"
+        res.redirect('/admin/doUpdateAccount')
+    } else if (role == "Staff" | role == "QACoordinator" & department == 'None') {
+        req.session.error.msg = "Staff or Quality Assurance Coordinator must have a department"
+        res.redirect('/admin/doUpdateAccount')
+    } else if (password.lenght == 0){
+        req.session.error.msg = "An account must have a password"
+        res.redirect('/admin/doUpdateAccount')
+    } else if (result == "-1"){
+        req.session.error.msg = "This email has been used"
+        res.redirect('/admin/doUpdateAccount')
     }
     const check = await updateAccount(objectId,account)
     console.log(check)
@@ -99,11 +152,30 @@ router.post('/createEvent',async (req,res)=>{
 })
 
 router.post('/editEvent', async (req,res)=>{
-    var id = req.query.id;
+    var id = req.body.id;
     var objectId = ObjectId(id)
     const name = req.body.TxTName
     const startDate = Date.parse(req.body.StartDate)
     const endDate = Date.parse(req.body.EndDate)
+    if (sDate < realtimeDate){
+        req.session.error.msg = "The event start date is passed"
+        
+    } else if(eDate > realtimeDate) {
+        const errorMessage = "The event end date is passed"
+        
+    } else if (eDate > sDate) {
+        const errorMessage = "The event end date is earlier than the start date"
+        
+    } else {
+        var event = {
+            'name' : name,
+            'startDate' : startDate,
+            'endDate' : endDate
+        }
+        const check = await insertObject(EVENT_TABLE_NAME,event)
+        console.log(check)
+        res.redirect('/admin/viewEvent')
+    }
     var event = {
         'name' : name,
         'startDate' : startDate,
@@ -151,7 +223,11 @@ router.get('/newAccount', async(req,res)=>{
     console.log(results)
     const departments = await getAllDocumentFromCollection(DEPARTMENT_TABLE_NAME)
     console.log(departments)
-    res.render('admin/newAccount',{'roles':results,'departments':departments})
+    if(req.session.error.msg != null){
+        var errorMessage = req.session.error.msg
+    }
+    res.render('admin/newAccount',{'roles':results,'departments':departments, 'errorMessage':errorMessage})
+    req.session.error.msg = null
 })
 
 router.get('/updateAccount', async (req,res)=>{
@@ -167,14 +243,14 @@ router.get('/updateAccount', async (req,res)=>{
 router.get('/deleteAccount',async (req,res)=>{
     let id = req.query.id
     console.log(id)
-    let objectId = ObjectId(id);
-    let dbo = await getDB();
+    let objectId = ObjectId(id)
+    let dbo = await getDB()
     await dbo.collection(USER_TABLE_NAME).deleteOne({_id:objectId})
     res.redirect('/admin/viewAccount')
 })
 
 router.get('/viewAccount',async (req,res)=>{
-    let result = await getAccount();
+    let result = await getAccount()
     res.render('admin/viewAccount',{'accounts': result})
 })
 
@@ -298,7 +374,10 @@ router.get('/viewComment',async (req,res)=>{
     const id = req.query.id
     console.log(id)
     const result = await getIdeaFeedback(id)
-    res.render('admin/viewComment',{comments:result})
+    const objectId = ObjectId(id)
+    console.log(objectId)
+    const idea = await getAnIdea(objectId)
+    res.render('admin/viewComment',{comments:result,idea:idea})
 })
 
 ///////////////////////////////////////////////////// SET EVENT //////////////////////////////////////////////////////////////
@@ -310,8 +389,7 @@ router.get('/createEvent', async (req, res) =>{
 
 router.get('/editEvent', async (req, res) =>{
     var id = req.query.id;
-    var objectId = ObjectId(id)
-    var event = await getAEvent(objectId);
+    var event = await getAEvent(id);
     res.render('admin/editEvent',{'event':event})
 })
 
