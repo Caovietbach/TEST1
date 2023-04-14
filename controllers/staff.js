@@ -16,7 +16,7 @@ const storage = multer.diskStorage({
 const uploadStorage = multer({ storage: storage })
 const router = express.Router()
 const {getDB,insertObject,getAccount,getAllDocumentFromCollection,getAnAccount,updateAccount,
-    getIdeaFeedback, getAEvent, editEvent, checkUserDepartment,
+    getIdeaFeedback, getAEvent, editEvent, checkUserDepartment,searchCoordinator,
     checkUserRole,checkUserLogin,updateIdeaLikeCount,getAnIdea,checkCategory, checkUserLike, 
     checkUserDislike,checkUserEmail, checkExistEmail,searchIdeaByCategory, searchIdeaByEvent,
     EVENT_TABLE_NAME,USER_TABLE_NAME,IDEA_TABLE_NAME,CATEGORY_TABLE_NAME,ROLE_TABLE_NAME,
@@ -93,20 +93,37 @@ router.post('/newIdea',requiresLoginStaff,uploadStorage.single("myFile"), async 
                 }
             
             })
-            let mailOptions = {
+            let mailAuthor = {
                 from: "bachcs48@gmail.com",
-                to: "bachcvgch200418@fpt.edu.vn",
+                to: authorEmail,
                 subject:"Idea",
-                text: "An idea has been submited."
+                text: "Your idea has been submited successfull."
             }
-                
-            transporter.sendMail(mailOptions, function (err, success){
+            transporter.sendMail(mailAuthor, function (err, success){
                 if (err) {
                     console.log(err)
                 } else {
-                    console.log("Sendfile successfull!")
+                    console.log("Successfully send noti to the coordinator!")
                 }
             })
+            const d = req.session.user.department
+            const coor = await searchCoordinator(d)
+            for( const i = 0; i < coor.length; i++ ){
+                let mailCoordinator = {
+                    from: "bachcs48@gmail.com",
+                    to: coor[i].email,
+                    subject:"Idea",
+                    text: "A staff from your department has submitted an idea."
+                }
+    
+                transporter.sendMail(mailCoordinator, function (err, success){
+                    if (err) {
+                        console.log(err)
+                    } else {
+                        console.log("Successfully send noti to the coordinator!")
+                    }
+                })
+            }
             res.redirect('/staff/viewIdea')
         } else {
             const objectToInsert = {
@@ -146,6 +163,24 @@ router.post('/newIdea',requiresLoginStaff,uploadStorage.single("myFile"), async 
                     console.log("Sendfile successfull!")
                 }
             })
+            const d = req.session.user.department
+            const coor = await searchCoordinator(d)
+            for( const i = 0; i < coor.length; i++ ){
+                let mailCoordinator = {
+                    from: "bachcs48@gmail.com",
+                    to: coor[i].email,
+                    subject:"Idea",
+                    text: "A staff from your department has submitted an idea."
+                }
+    
+                transporter.sendMail(mailCoordinator, function (err, success){
+                    if (err) {
+                        console.log(err)
+                    } else {
+                        console.log("Successfully send noti to the coordinator!")
+                    }
+                })
+            }
             res.redirect('/staff/viewIdea')
         }
     }
@@ -333,7 +368,6 @@ router.get('/viewIdea',requiresLoginStaff, async (req, res) => {
     const results = await getAllDocumentFromCollection(IDEA_TABLE_NAME)
     if (req.session.error.msg != null){
         res.render('staff/viewIdea',{ideas:results,ErrorMsg:req.session.error.msg})
-        req.session.error.msg = null
     } else {
         res.render('staff/viewIdea',{ideas:results})
     }
@@ -343,15 +377,15 @@ router.post('/viewSort', async (req, res)=>{
     const input = req.body.Input
     const checkC = await searchIdeaByCategory(input)
     const checkE = await searchIdeaByEvent(input)
-    if (checkC == -1 & checkE == -1){
-        req.session.error.msg = "There are no such category or event"
-        res.redirect('/staff/viewIdea')
-    } else if (checkC != -1 & checkE == -1){
+    if (checkC != -1 && checkE == -1){
         console.log(checkC)
         res.render('staff/viewIdea',{ideas:checkC})
-    } else {
+    } else if (checkC == -1 & checkE != -1){
         console.log(checkE)
         res.render('staff/viewIdea',{ideas:checkE})
+    } else {
+        req.session.error.msg = "There are no such category or event"
+        res.redirect('/staff/viewIdea')
     }
 })
 

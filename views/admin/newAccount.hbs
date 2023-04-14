@@ -8,6 +8,9 @@
 </head>
 <body>
     <h1>Register a new user!</h1>
+    <div>
+        <span style="color: red;">{{errorMsg}}</span>
+    </div>
     <form method="post" action="/admin/newAccount">
         Name : <input type="text" name="txtName">
         <br>

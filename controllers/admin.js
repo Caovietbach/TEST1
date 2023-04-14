@@ -80,7 +80,7 @@ router.post('/doUpdateAccount', async (req,res)=>{
         'email': email,
         'role': role,
         'department': department,
-        'password': pass
+        'password': password
     } 
     const result = checkExistEmail(email)
 
@@ -226,7 +226,7 @@ router.get('/newAccount', async(req,res)=>{
     if(req.session.error.msg != null){
         var errorMessage = req.session.error.msg
     }
-    res.render('admin/newAccount',{'roles':results,'departments':departments, 'errorMessage':errorMessage})
+    res.render('admin/newAccount',{'roles':results,'departments':departments, 'errorMsg':errorMessage})
     req.session.error.msg = null
 })
 

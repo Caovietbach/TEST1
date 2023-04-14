@@ -155,7 +155,7 @@ async function checkUserDislike(ideaI, Email){
 
 async function searchIdeaByCategory(input){
     const dbo = await getDB()
-    const results = await dbo.collection(IDEA_TABLE_NAME).find({category:input}).toArray()
+    var results = await dbo.collection(IDEA_TABLE_NAME).find({category:input}).toArray()
     console.log(results)
     if (results != null){
         return results
@@ -166,13 +166,19 @@ async function searchIdeaByCategory(input){
 
 async function searchIdeaByEvent(input){
     const dbo = await getDB()
-    const results = await dbo.collection(IDEA_TABLE_NAME).find({event:input}).toArray()
+    var results = await dbo.collection(IDEA_TABLE_NAME).find({event:input}).toArray()
     console.log(results)
     if (results != null){
         return results
     } else {
         return -1
     }
+}
+
+async function searchCoordinator(department){
+    const dbo = await getDB()
+    var results = await dbo.collection(USER_TABLE_NAME).find({department:department}).toArray()
+    return results
 }
 
 
@@ -190,6 +196,6 @@ const POSTDISLIKE_TABLE_NAME = "Postdislike"
 module.exports = {getDB,insertObject,getAccount,getAllDocumentFromCollection,getAnAccount,updateAccount,
                 getIdeaFeedback, getAEvent, editEvent, checkUserDepartment,
                 checkUserRole,checkUserLogin,updateIdeaLikeCount,getAnIdea,checkCategory, checkUserLike, 
-                checkUserDislike,checkUserEmail, checkExistEmail,searchIdeaByCategory, searchIdeaByEvent,
+                checkUserDislike,checkUserEmail, checkExistEmail,searchIdeaByCategory, searchIdeaByEvent,searchCoordinator,
                 EVENT_TABLE_NAME,USER_TABLE_NAME,IDEA_TABLE_NAME,CATEGORY_TABLE_NAME,ROLE_TABLE_NAME,
                 DEPARTMENT_TABLE_NAME,POSTLIKE_TABLE_NAME,POSTDISLIKE_TABLE_NAME,COMMENT_TABLE_NAME}
